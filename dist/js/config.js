@@ -116,7 +116,7 @@ export const ZONES = [
     fx: { wash: 1, gloss: .4, interior: 0, water: .72 },
   },
   {
-    id: 'film', group: 'protect', title: 'Оклейка зон риска', from: 10000,
+    id: 'film', group: 'protect', title: 'Оклейка зон риска', from: 180000,
     caption: 'Плёнка туда, где кузов страдает первым: капот, фары, пороги.',
     cam: .18, hold: 3.8,
     fx: { wash: 1, gloss: .55, interior: 0, water: 0 },
