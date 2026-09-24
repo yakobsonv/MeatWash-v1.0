@@ -113,20 +113,39 @@ body.cfg-open .scene__skip{
 }
 body.cfg-open .chapter-nav{ display:none; }
 
-/* Кнопка открытия — рядом с «Все услуги», в том же ряду. */
+/* Кнопка открытия — в правом верхнем углу сцены.
+   Слева и снизу кадр занимают заголовки глав, финал и «Все услуги»; справа
+   сверху пусто на всей прокрутке, поэтому кнопка нигде ни на что не налезает. */
 .scene__cfg{
-  position:absolute; left:clamp(14px,3vw,40px); bottom:calc(clamp(14px,3vw,40px) + 34px);
-  z-index:7; min-height:44px; padding:10px 18px;
-  background:rgba(8,8,8,.7); backdrop-filter:blur(8px);
-  border:1px solid rgba(233,223,208,.22); border-radius:3px;
+  position:absolute; right:clamp(14px,3vw,40px);
+  top:calc(var(--header-h) + clamp(12px,1.8vw,26px));
+  z-index:7; min-height:46px; padding:12px 20px;
+  display:inline-flex; align-items:center; gap:10px;
+  background:rgba(8,8,8,.62); backdrop-filter:blur(10px);
+  border:1px solid rgba(233,223,208,.26); border-radius:3px;
   color:#e9dfd0; font:inherit; font-size:13px; letter-spacing:.04em;
-  cursor:pointer; transition:border-color .18s ease, background .18s ease;
+  cursor:pointer; transition:border-color .18s ease, background .18s ease, transform .18s ease;
 }
-.scene__cfg:hover{ border-color:#861A22; background:rgba(134,26,34,.28); }
+.scene__cfg::after{ content:'→'; color:rgba(233,223,208,.6); transition:transform .18s ease, color .18s ease; }
+.scene__cfg:hover{ border-color:#861A22; background:rgba(134,26,34,.32); }
+.scene__cfg:hover::after{ transform:translateX(3px); color:#e9dfd0; }
 .scene__cfg[aria-expanded="true"]{ background:#861A22; border-color:#861A22; }
+/* Панель выезжает справа — кнопка уходит налево, чтобы не лечь на заголовок. */
+body.cfg-open .scene__cfg{ right:auto; left:clamp(14px,3vw,40px); }
+
+/* Подсказка про шторку: появляется только там, где есть честная пара «до/после». */
+.cfg__pairhint{
+  display:none; align-items:center; gap:8px;
+  margin:10px 0 0; padding:9px 12px;
+  border:1px solid rgba(233,223,208,.18); border-radius:3px;
+  background:rgba(233,223,208,.04);
+  font-size:12px; line-height:1.4; color:rgba(233,223,208,.74);
+}
+.cfg__pairhint::before{ content:'↔'; font-size:15px; color:#e9dfd0; }
+.cfg.has-pair .cfg__pairhint{ display:flex; }
 @media (max-width:720px){
   /* Над нижней кнопкой записи, а не поверх неё. */
-  .scene__cfg{ bottom:calc(env(safe-area-inset-bottom,0px) + 62px); left:50%; transform:translateX(-50%); }
+  .scene__cfg{ top:auto; right:auto; bottom:calc(env(safe-area-inset-bottom,0px) + 62px); left:50%; transform:translateX(-50%); }
   body.cfg-open .scene__cfg{ bottom:auto; top:calc(env(safe-area-inset-top,0px) + 76px); }
 }
 
@@ -161,7 +180,11 @@ body.cfg-open .mobile-cta{ visibility:hidden; }
 .cfg__preset i{ font-style:normal; font-size:10px; line-height:1.25; color:#9a8f80; }
 
 .cfg__scroll{ max-height:min(42vh,340px); overflow-y:auto; margin:0 -6px 14px; padding:0 6px;
-  scrollbar-width:thin; scrollbar-color:rgba(233,223,208,.25) transparent; }
+  scrollbar-width:thin; scrollbar-color:rgba(233,223,208,.25) transparent;
+  /* Нижний край списка растворяется: видно, что список продолжается,
+     и строки не обрываются посередине. */
+  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent 100%);
+  mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent 100%); }
 .cfg__scroll::-webkit-scrollbar{ width:4px; }
 .cfg__scroll::-webkit-scrollbar-thumb{ background:rgba(233,223,208,.25); border-radius:2px; }
 

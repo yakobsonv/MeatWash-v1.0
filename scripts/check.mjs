@@ -52,6 +52,28 @@ const model=await readFile(resolve(dist,'assets/porsche-930-optimized.glb'));
 const gltf=JSON.parse(model.subarray(20,20+model.readUInt32LE(12)).toString());
 assert(gltf.extensionsRequired.includes('EXT_meshopt_compression'));
 for(const surface of ['Object_113','Object_9','Object_30'])assert(gltf.nodes.some(node=>node.name===surface),'Missing Porsche surface '+surface);
-assert((await readFile(resolve(dist,'js/main.js'),'utf8')).includes("import('./scene.bundle.js')"));
+// Наша версия ведёт витрину на фотографиях, а не 3D-сцену.
+const mainSource=await readFile(resolve(dist,'js/main.js'),'utf8');
+assert(mainSource.includes("import('./stage.js')"),'main.js must boot the photographic stage');
+const {LADDER,ZONE_SHOTS,SHOT_BASE}=config;
+assert(Array.isArray(LADDER)&&LADDER.length>=4,'Ladder needs at least four states');
+const shots=new Set([SHOT_BASE,...LADDER.map(s=>s.shot)]);
+for(const z of Object.values(ZONE_SHOTS)){shots.add(z.shot);if(z.pair){shots.add(z.pair.before);shots.add(z.pair.after);}}
+for(const id of shots)for(const suffix of ['','-s'])
+  await readFile(resolve(dist,`assets/shots/${id}${suffix}.webp`));
+assert.equal(Object.keys(ZONE_SHOTS).length,12,'Every service needs a photograph');
+assert.equal(LADDER.length,6,'Ladder must cover five scroll screens and the finale');
+
+// Секция «до/после»: шторки должны быть собраны и подключены.
+assert(mainSource.includes("setupProof"),'main.js must wire the before/after sliders');
+const slides=[...html.matchAll(/<figure class="ba"[\s\S]*?<\/figure>/g)];
+assert(slides.length>=2,'The proof section needs at least two sliders');
+for(const [slide] of slides){
+  const sources=[...slide.matchAll(/src="(assets\/shots\/[a-z0-9-]+\.webp)"/g)].map(m=>m[1]);
+  assert.equal(sources.length,2,'Each slider shows exactly two photographs');
+  assert(slide.includes('class="ba__clip"'),'Each slider needs the clipped half');
+  assert(slide.includes('role="slider"'),'Each slider needs an accessible handle');
+  for(const src of sources) await readFile(resolve(dist,src));
+}
 assert.equal(failures.length,0,failures.join('\n'));
-console.log('PASS: JS syntax, module paths, local assets, anchors, six camera stops, four services, supplied prices and booking destination.');
+console.log(`PASS: JS syntax, module paths, local assets, anchors, four services, supplied prices, booking destination and ${shots.size} photographs in two widths.`);

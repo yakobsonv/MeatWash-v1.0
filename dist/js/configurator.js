@@ -1,37 +1,25 @@
 // Гараж услуг: все работы показываются на одной машине.
 //
-// Выбранные услуги складываются в один облик — мойка убирает грязь, полировка
-// поднимает блеск, керамика добавляет каплю, химчистка уводит камеру в салон.
-// Камера уезжает к той зоне, которую тронули последней.
-//
-// Режим показа проигрывает выбранное по очереди: подъезд к зоне, выдержка,
-// переход к следующей. Панель при этом можно убрать — в кадре остаётся только
-// машина и подпись работы, что и нужно для съёмки роликов услуг.
+// У каждой работы свой кадр съёмки. Отметили работу — витрина перешла на её
+// кадр; у полировки, сколов и фар кадра два, до и после, и между ними ездит
+// ползунок. Показ проигрывает выбранное по очереди, ролик — все работы подряд.
 
-import { ZONES, ZONE_GROUPS, ZONE_PRESETS, SERVICE_BASE } from './config.js';
+import { ZONES, ZONE_GROUPS, ZONE_PRESETS, ZONE_SHOTS, SHOT_BASE, FILM_OPEN } from './config.js';
 
-const EASE = (x) => 1 - Math.pow(1 - x, 3);
 const money = (n) => n.toLocaleString('ru-RU') + ' ₽';
 const byId = (id) => ZONES.find((z) => z.id === id);
-const FX = ['wash', 'gloss', 'interior', 'water'];
-const TRAVEL_IN = 1100;   // подъезд камеры к зоне, работа ещё не сделана
-const WORK_IN = 1000;     // работа происходит в кадре
-const FILM_LEAD = 900;    // чистая пауза в начале ролика под запись экрана
-const FINAL_CAM = 1;      // общий план готовой машины в финале
+const HOLD = 3400;        // сколько кадр держится на одной работе
+const CROSS = 700;         // перекрёстное затухание между кадрами
+const FILM_LEAD = 900;     // чистая пауза в начале ролика под запись экрана
 
 export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
   const picked = new Set();
-  let frame = 0;
-  let from = { ...SERVICE_BASE };
-  let to = { ...SERVICE_BASE };
-  let live = { ...SERVICE_BASE };   // где кадр находится прямо сейчас
-  let startedAt = 0;
-  let travel = 900;
   let open = false;
 
   // Показ
   let show = null;       // { order:[id], index, until, timer }
   let cinema = false;    // панель убрана, остаётся только подпись
+  let autoCinema = false; // панель убрал сам показ, а не пользователь
   let film = false;      // ролик: из кадра уходит весь интерфейс сайта
   let filmStartedAt = 0;
 
@@ -75,6 +63,8 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
           </section>`).join('')}
       </div>
 
+      <p class="cfg__pairhint">Потяните шторку на кадре — увидите, что меняет работа.</p>
+
       <p class="cfg__total"><span>Итого</span><b data-total>—</b></p>
 
       <div class="cfg__act">
@@ -114,40 +104,34 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
     document.querySelectorAll(OVERLAYS).forEach((el) => { el.inert = on; });
   };
 
-  function target() {
-    if (!picked.size) return { ...SERVICE_BASE };
-    const acc = { ...SERVICE_BASE, wash: 0, gloss: 0, interior: 0, water: 0 };
-    let last = null;
-    for (const z of ZONES) {
-      if (!picked.has(z.id)) continue;
-      for (const k of FX) acc[k] = Math.max(acc[k], z.fx[k]);
-      last = z;
+  // Что показать на витрине. Выбрали одну работу — её кадр; выбрали несколько —
+  // кадр той, которую тронули последней. Ничего не выбрано — базовый кадр.
+  let lastTouched = null;
+
+  // force — кадр нужен для показа или ролика, где работа может быть и не
+  // отмечена галочкой: без этого ролик всё время стоял на базовом кадре.
+  function target(id, force) {
+    const key = id || lastTouched;
+    if (key && ZONE_SHOTS[key] && (force || picked.has(key))) return { id: key, ...ZONE_SHOTS[key] };
+    for (let i = ZONES.length - 1; i >= 0; i--) {
+      const z = ZONES[i];
+      if (picked.has(z.id) && ZONE_SHOTS[z.id]) return { id: z.id, ...ZONE_SHOTS[z.id] };
     }
-    acc.cam = last ? last.cam : SERVICE_BASE.cam;
-    // Мойка — основа любого ухода: без неё блеск и капля не читаются.
-    if (acc.gloss > 0 || acc.water > 0) acc.wash = Math.max(acc.wash, .85);
-    return acc;
+    return { id: null, shot: SHOT_BASE };
   }
 
-  function animate() {
+  let shownPair = null;
+
+  function retarget(id, force) {
     const scene = getScene();
     if (!scene) return;
-    const t = EASE(Math.min(1, (performance.now() - startedAt) / travel));
-    for (const k of Object.keys(to)) live[k] = from[k] + (to[k] - from[k]) * t;
-    scene.setManual(live);
-    if (t < 1) frame = requestAnimationFrame(animate);
-    else { frame = 0; from = { ...to }; }
-  }
-
-  function retarget(next, ms = 900) {
-    if (!getScene()) return;
-    // Новый перелёт начинается оттуда, где кадр застали, иначе он дёргается.
-    from = { ...live };
-    to = { ...target(), ...(next || {}) };
-    travel = ms;
-    startedAt = performance.now();
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(animate);
+    const spec = target(id, force);
+    scene.setManual(spec);
+    panel.classList.toggle('has-pair', Boolean(spec.pair));
+    // Новую пару шторка проезжает сама: иначе разницу нужно искать вручную.
+    if (spec.pair && spec.id !== shownPair) scene.stage?.sweep?.(1900);
+    shownPair = spec.pair ? spec.id : null;
+    return spec;
   }
 
   function refreshTotal() {
@@ -180,50 +164,44 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
     showBtn.textContent = 'Показ';
     filmBtn.textContent = 'Ролик';
     panel.classList.remove('is-playing');
+    if (autoCinema) { autoCinema = false; setCinema(false); }
     if (wasFilm) setFilm(false);
-    if (!silent) retarget();
+    if (!silent) retarget(null);
   }
 
   function stepShow() {
     if (!show) return;
+
     if (show.index >= show.order.length) {
-      // Ролик заканчивается общим планом готовой машины — кадром для финала.
-      if (show.film) { retarget({ ...show.look, cam: FINAL_CAM }, 2200); show.index += 1; }
-      show.timer = setTimeout(() => stopShow(true), show.film ? 2600 : 0);
-      if (!show.film) stopShow();
+      // Финал: общий план готовой машины, потом выход.
+      retarget(null);
+      stageTitle.textContent = 'Готова';
+      stageCaption.textContent = 'Забирайте. Машина собрана, лак сухой, салон чистый.';
+      stagePrice.textContent = show.sum ? 'от ' + money(show.sum) : '';
+      runBar(show.film ? 2600 : 1400);
+      show.timer = setTimeout(() => stopShow(true), show.film ? 2600 : 1400);
       return;
     }
 
     const zone = byId(show.order[show.index]);
-    const hold = (zone.hold || 3.4) * 1000;
+    const hold = (zone.hold || HOLD / 1000) * 1000;
 
     stageTitle.textContent = zone.title;
     stageCaption.textContent = zone.caption;
     stagePrice.textContent = 'от ' + money(zone.from);
     stage.hidden = false;
 
-    const base = show.film ? { ...show.look } : target();
-    const after = { ...base, cam: zone.cam };
-    for (const k of FX) after[k] = Math.max(base[k], zone.fx[k]);
+    const spec = retarget(zone.id, true);
 
-    let span;
-    if (show.film) {
-      // Ролик идёт в два такта: камера приезжает к зоне, пока работа ещё не
-      // сделана, и только потом работа происходит прямо в кадре.
-      retarget({ ...base, cam: zone.cam }, TRAVEL_IN);
-      show.beat = setTimeout(() => {
-        if (!show) return;
-        show.look = after;
-        retarget(after, WORK_IN);
-        show.timer = setTimeout(() => { show.index += 1; stepShow(); }, hold);
-      }, TRAVEL_IN);
-      span = TRAVEL_IN + WORK_IN + hold;
-    } else {
-      retarget(after, 1200);
-      show.timer = setTimeout(() => { show.index += 1; stepShow(); }, hold + 1200);
-      span = hold + 1200;
-    }
+    // У работ с парой «до/после» шторка проезжает кадр под выдержку показа.
+    if (spec && spec.pair) getScene()?.stage?.sweep?.(hold * 0.72);
 
+    runBar(hold + CROSS);
+    show.timer = setTimeout(() => { show.index += 1; stepShow(); }, hold + CROSS);
+  }
+
+  // Полоса времени под подписью: показывает, сколько кадр ещё держится.
+  function runBar(span) {
     const startedStep = performance.now();
     const tick = () => {
       if (!show) return;
@@ -238,9 +216,16 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
   function startShow() {
     if (!picked.size) return;
     stopShow(true);
-    show = { order: ZONES.filter((z) => picked.has(z.id)).map((z) => z.id), index: 0, timer: 0, beat: 0, raf: 0, film: false };
+    const order = ZONES.filter((z) => picked.has(z.id)).map((z) => z.id);
+    show = {
+      order, index: 0, timer: 0, beat: 0, raf: 0, film: false,
+      sum: order.reduce((s, id) => s + byId(id).from, 0),
+    };
     showBtn.textContent = 'Стоп';
     panel.classList.add('is-playing');
+    // На телефоне нижний лист занимает пол-экрана и накрывает подпись показа.
+    // Показ смотрят, а не листают, поэтому панель на время уходит сама.
+    if (innerWidth <= 720 && !cinema) { setCinema(true); autoCinema = true; }
     stepShow();
   }
 
@@ -253,18 +238,20 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
     stopShow(true);
     setCinema(false);
     setFilm(true);
-    live = { ...SERVICE_BASE };
-    from = { ...SERVICE_BASE };
+    const order = ZONES.map((z) => z.id);
     show = {
-      order: ZONES.map((z) => z.id),
-      index: 0, timer: 0, beat: 0, raf: 0,
-      film: true,
-      look: { ...SERVICE_BASE },
+      order, index: 0, timer: 0, beat: 0, raf: 0, film: true,
+      sum: order.reduce((s, id) => s + byId(id).from, 0),
     };
     stage.classList.add('is-film');
+    stage.hidden = false;
     filmBtn.textContent = 'Стоп';
     panel.classList.add('is-playing');
-    getScene()?.setManual(live);
+    // Ролик открывается грязной машиной: дальше по порядку идут работы.
+    getScene()?.setManual({ id: null, shot: FILM_OPEN });
+    stageTitle.textContent = 'Как приехала';
+    stageCaption.textContent = 'Зимняя плёнка, соль по порогам, диски в пыли.';
+    stagePrice.textContent = '';
     // Пауза перед первым тактом: запись экрана успевает начаться на чистом кадре.
     show.beat = setTimeout(() => show && stepShow(), FILM_LEAD);
   }
@@ -292,11 +279,12 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
   panel.addEventListener('change', (e) => {
     const input = e.target;
     if (input.type !== 'checkbox') return;
-    if (input.checked) picked.add(input.value); else picked.delete(input.value);
+    if (input.checked) { picked.add(input.value); lastTouched = input.value; }
+    else { picked.delete(input.value); if (lastTouched === input.value) lastTouched = null; }
     input.closest('.cfg__item').classList.toggle('is-on', input.checked);
     refreshTotal();
     stopShow(true);
-    retarget(input.checked ? { cam: byId(input.value).cam } : undefined);
+    retarget(input.checked ? input.value : null);
   });
 
   panel.addEventListener('click', (e) => {
@@ -315,7 +303,7 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
       syncInputs();
       refreshTotal();
       stopShow(true);
-      retarget({ cam: byId(p.zones[p.zones.length - 1]).cam });
+      retarget(p.zones[p.zones.length - 1]);
       return;
     }
 
@@ -328,7 +316,7 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
       syncInputs();
       refreshTotal();
       stopShow(true);
-      retarget();
+      retarget(null);
       return;
     }
 
@@ -367,9 +355,8 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
       document.body.classList.add('cfg-open');
       document.addEventListener('keydown', onKey);
       freezeOverlays(true);
-      from = { ...SERVICE_BASE };
       refreshTotal();
-      retarget();
+      retarget(null);
       onOpen?.();
     },
     close() {
@@ -384,14 +371,13 @@ export function setupConfigurator({ mount, getScene, onOpen, onClose }) {
       document.body.classList.remove('cfg-open');
       document.removeEventListener('keydown', onKey);
       freezeOverlays(false);
-      cancelAnimationFrame(frame);
       getScene()?.setManual(null);
       onClose?.();
     },
     get isOpen() { return open; },
     film: () => { if (!open) api.open(); startFilm(); },
     selected: () => [...picked],
-    destroy() { cancelAnimationFrame(frame); stopShow(true); document.removeEventListener('click', onFilmClick); document.removeEventListener('keydown', onKey); freezeOverlays(false); },
+    destroy() { stopShow(true); document.removeEventListener('click', onFilmClick); document.removeEventListener('keydown', onKey); freezeOverlays(false); },
   };
   // ?film в адресе — страница сама открывает гараж и проигрывает все работы
   // без интерфейса. Так снимается ролик: открыл ссылку, включил запись.

@@ -340,7 +340,10 @@ body.menu-open .burger span:last-child { transform: translateY(-3.5px) rotate(-4
 .dialog__phones strong { font-weight: 400; }
 
 /* ---------- Reveal helpers ---------- */
-[data-reveal] { }
+/* Появление блоков при прокрутке: короткий подъём, без «киселя». */
+[data-reveal] { opacity: 0; transform: translateY(18px); transition: opacity 620ms var(--ease), transform 620ms var(--ease); }
+[data-reveal].is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; transition: none; } }
 
 /* ==========================================================================
    Responsive
