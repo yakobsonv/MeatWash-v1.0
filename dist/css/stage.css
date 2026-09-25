@@ -6,6 +6,26 @@
 
 .stage{ position:absolute; inset:0; overflow:hidden; background:#080808; }
 
+/* Пока открыт гараж, кадр уходит из-под панели и целиком помещается слева.
+   Раньше панель ложилась чёрным на треть кадра и закрывала корму машины. */
+@media (min-width:901px){
+  /* Пока открыт гараж, кадр занимает свободную область целиком и по пропорции
+     самой фотографии: панель больше не ложится чёрным на корму машины, а
+     шторка и подписи совпадают с краями кадра. */
+  body.cfg-open .stage{
+    right:calc(min(340px,86vw) + clamp(14px,3vw,40px) - 34px);
+    top:50%; bottom:auto; height:auto;
+    aspect-ratio:1600 / 894; max-height:100%;
+    transform:translateY(-50%);
+  }
+  body.cfg-open .stage__layer{
+    background-size:contain; background-position:50% 50% !important;
+    animation:none; transform:none;
+  }
+  body.cfg-open .stage__pairimg{ object-fit:contain; object-position:50% 50% !important; }
+}
+@media (prefers-reduced-motion:reduce){ .stage{ transition:none; } }
+
 /* Два слоя крест-накрест: переход между кадрами всегда плавный. */
 .stage__layer{
   position:absolute; inset:0;
@@ -55,7 +75,8 @@
 .is-dragging .stage__grip{ background:#861A22; border-color:#861A22; }
 
 .stage__tag{
-  position:absolute; bottom:clamp(18px,4vh,34px);
+  /* Метки сверху: внизу кадра идёт подпись работы во время показа. */
+  position:absolute; top:clamp(16px,3.4vh,30px);
   padding:5px 11px; border-radius:3px;
   background:rgba(8,8,8,.62); backdrop-filter:blur(6px);
   color:rgba(233,223,208,.86);
@@ -64,10 +85,7 @@
 }
 .stage__tag--b{ left:clamp(16px,4vw,44px); }
 .stage__tag--a{ right:clamp(16px,4vw,44px); }
-/* Пока панель гаража открыта, правая метка уезжает из-под неё. */
-@media (min-width:721px){
-  body.cfg-open .stage__tag--a{ right:calc(clamp(300px,25vw,380px) + clamp(16px,4vw,44px)); }
-}
+/* Кадр сам ужимается до свободной области, поэтому сдвигать метку не нужно. */
 .stage:not(.has-pair) .stage__tag{ opacity:0; }
 
 @media (prefers-reduced-motion:reduce){

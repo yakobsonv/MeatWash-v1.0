@@ -8,8 +8,8 @@
   width:min(340px,86vw);
   display:flex; flex-direction:column;
   padding:22px 22px 18px;
-  background:rgba(8,8,8,.86);
-  backdrop-filter:blur(10px);
+  background:linear-gradient(180deg,rgba(10,8,8,.72),rgba(8,8,8,.78));
+  backdrop-filter:blur(20px) saturate(1.1);
   border:1px solid rgba(233,223,208,.14);
   border-radius:4px;
   pointer-events:auto;
