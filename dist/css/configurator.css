@@ -48,7 +48,7 @@
 .cfg__item input:focus-visible + .cfg__box{ outline:2px solid #e9dfd0; outline-offset:2px; }
 
 .cfg__text{ display:flex; flex-direction:column; gap:2px; line-height:1.25; }
-.cfg__text b{ font-size:14.5px; font-weight:500; }
+.cfg__text b{ font-size:14.5px; font-weight:700; }
 .cfg__text i{ font-style:normal; font-size:12.5px; color:#9a8f80; }
 
 .cfg__total{
@@ -57,7 +57,7 @@
   border-top:1px solid rgba(233,223,208,.14);
   font-size:13px; color:#9a8f80;
 }
-.cfg__total b{ font-size:19px; color:#e9dfd0; font-weight:500; }
+.cfg__total b{ font-size:19px; color:#e9dfd0; font-weight:700; font-family:var(--font-display); }
 
 .cfg__act{ display:grid; grid-template-columns:1fr auto; gap:8px; }
 .cfg__act .btn{ min-height:46px; }
@@ -176,7 +176,7 @@ body.cfg-open .mobile-cta{ visibility:hidden; }
   transition:background .18s ease, border-color .18s ease;
 }
 .cfg__preset:hover{ background:rgba(134,26,34,.28); border-color:rgba(134,26,34,.7); }
-.cfg__preset b{ font-size:12px; font-weight:600; letter-spacing:.02em; }
+.cfg__preset b{ font-size:12px; font-weight:700; letter-spacing:.02em; }
 .cfg__preset i{ font-style:normal; font-size:10px; line-height:1.25; color:#9a8f80; }
 
 .cfg__scroll{ max-height:min(42vh,340px); overflow-y:auto; margin:0 -6px 14px; padding:0 6px;
@@ -190,7 +190,7 @@ body.cfg-open .mobile-cta{ visibility:hidden; }
 
 .cfg__group + .cfg__group{ margin-top:12px; }
 .cfg__grouptitle{
-  margin:0 0 4px; font-size:10px; font-weight:500;
+  margin:0 0 4px; font-size:10px; font-weight:700;
   letter-spacing:.18em; text-transform:uppercase; color:#9a8f80;
 }
 .cfg__group .cfg__list{ margin-bottom:0; }
