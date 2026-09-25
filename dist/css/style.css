@@ -297,13 +297,15 @@ body.menu-open .burger span:last-child { transform: translateY(-3.5px) rotate(-4
 .membership {
   position: relative; z-index: 2; overflow: hidden;
   display: grid; grid-template-columns: 56% 44%; align-items: center;
-  min-height: clamp(220px, 16.5vw, 260px);
+  min-height: clamp(260px, 26vw, 400px);
   background: radial-gradient(90% 140% at 26% 48%, #5a0f14 0%, #4a0b10 38%, #3e0a0e 70%, #30070a 100%);
 }
 .membership::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 75%, rgba(0, 0, 0, .35)); }
-.membership__card { position: relative; align-self: stretch; overflow: hidden; }
+.membership__card { position: relative; align-self: stretch; overflow: hidden; display: grid; place-items: center; padding: clamp(18px, 2.4vw, 36px); }
+/* Карта нарисована из фирменного вектора и лежит с прозрачным фоном.
+   Никакого mix-blend-mode: он размывал карту в фон секции. */
 .membership__card img {
-  position: absolute; left: 14%; top: 10%; width: clamp(260px, 40vw, 580px); height: auto; mix-blend-mode: lighten;
+  width: clamp(230px, 33vw, 500px); height: auto;
   transform: translateY(14px); opacity: .001; transition: transform 1.4s var(--ease), opacity 1.2s var(--ease);
 }
 .membership__card.is-in img { transform: none; opacity: 1; }
@@ -377,9 +379,8 @@ body.menu-open .burger span:last-child { transform: translateY(-3.5px) rotate(-4
   .about__stats dd { white-space: normal; }
   .locations { grid-template-columns: 1fr; }
   .membership { grid-template-columns: 1fr; min-height: 0; }
-  .membership__card { height: clamp(200px, 40vw, 280px); }
-  .membership__card img { left: 50%; top: 10%; transform: translate(-50%, 14px); width: clamp(240px, 60vw, 440px); }
-  .membership__card.is-in img { transform: translate(-50%, 0); }
+  .membership__card { height: auto; padding: clamp(24px, 6vw, 40px) var(--gutter) 0; }
+  .membership__card img { width: clamp(220px, 58vw, 400px); }
   .membership__copy { padding: 0 var(--gutter) clamp(36px, 5vw, 48px); }
   .footer__row { flex-wrap: wrap; }
   .footer__nav { order: 3; width: 100%; margin-left: 0; }

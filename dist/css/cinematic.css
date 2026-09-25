@@ -93,7 +93,6 @@ body.menu-open { overflow:hidden; }
   .finale .btn { display:none; }
   .mobile-cta { bottom:max(12px,env(safe-area-inset-bottom)); height:46px; box-shadow:0 0 0 8px #080808; }
   body:has(dialog[open]) .mobile-cta { visibility:hidden; }
-  .membership__card img { transform:translateX(-50%); }
   .about__copy { padding-bottom:24px; }
   .location__meta { font-size:13px; }
   .about__stats dt { font-size:24px; }
